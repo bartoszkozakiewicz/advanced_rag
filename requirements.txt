@@ -1,0 +1,5 @@
+pymilvus~=2.4.0
+
+langchain
+
+pandas~=2.2.1
