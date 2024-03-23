@@ -1,5 +1,3 @@
-Below is a README guide structured to explain how to use the provided code for setting up and using a vector storage system with Milvus, along with integrating an embedding generator. This guide assumes you have a basic understanding of Python and vector databases.
-
 ### Prerequisites
 
 - Python 3.10 or later.
