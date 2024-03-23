@@ -64,6 +64,7 @@ class MilvusStoreWithClient:
         if data is None:
             data = [random() for _ in range(128)]
         if fixed_filter is None:
+            # example from milvus docs: filter='claps > 30 and reading_time < 10',
             fixed_filter = "cat_level_1 == 'Zabawki i dziecko'"
         if output_fields is None:
             output_fields = ["id", "price", "cat_level_5", "url"]
