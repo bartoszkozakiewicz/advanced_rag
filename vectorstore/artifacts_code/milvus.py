@@ -1,8 +1,7 @@
 import logging
-import time
 from typing import Optional
 
-from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection, utility
+from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,19 +28,6 @@ class MilvusConnection:
         if self._connection is not None:
             connections.disconnect(alias=DEFAULT_ALIAS)
             self._connection = None
-
-    @staticmethod
-    def has_collection(collection_name):
-        """Checks if a collection exists."""
-        return utility.has_collection(collection_name)
-
-    def drop_collection(self, collection_name):
-        """Drops a collection."""
-        if self.has_collection(collection_name):
-            utility.drop_collection(collection_name)
-            while self.has_collection(collection_name):
-                time.sleep(1)
-            logger.info(f"Dropped collection: {collection_name}")
 
 
 class MilvusStore:
@@ -162,6 +148,72 @@ def test_run():
         for hit in results:
             print(f"ID: {hit.id}, Store: {hit.entity.get('store_name')}, "
                   f"Product: {hit.entity.get('product_name')}, Price: {hit.entity.get('price')}")
+
+
+class MilvusStore:
+    """Manages a collection in a Milvus server."""
+
+    def __init__(self, connection_manager: MilvusConnection, csv_file_path, collection_name, embedding_dimension=128):
+        self.connection_manager: MilvusConnection = connection_manager
+        self.csv_loader: CSVLoader = CSVLoader(csv_file_path)
+        self.collection_name = collection_name
+        self.embedding_dimension = embedding_dimension
+        self.embedding_generator = EmbeddingGenerator(self.embedding_dimension)
+        self.collection = None
+        self.logger = logging.getLogger(__name__)
+
+    def setup_collection(self):
+        """Ensures the collection and index are set up in Milvus, based on the CSV file schema."""
+        self.connection_manager.connect()
+        field_schemas = self.csv_loader.infer_schema_from_csv()
+        if not utility.has_collection(self.collection_name):
+            schema = CollectionSchema(fields=field_schemas)
+            self.collection = Collection(name=self.collection_name, schema=schema)
+            self.logger.info(f"Created collection: {self.collection_name}")
+        else:
+            self.collection = Collection(name=self.collection_name)
+        if not self.collection.has_index():
+            self._create_index()
+
+    def _create_index(self):
+        """Creates an index on the 'embedding' field."""
+        index_param = {"index_type": "IVF_FLAT", "metric_type": "L2", "params": {"nlist": 1024}}
+        self.collection.create_index(field_name="embedding", index_params=index_param)
+        self.logger.info(f"Created index on '{self.collection_name}'.")
+
+    def _ensure_connection(self):
+        """Ensures that there is an active connection to Milvus."""
+        if not self.connection_manager.is_connected():
+            self.connection_manager.connect()
+
+    def insert_data_from_csv(self):
+        """Dynamically inserts data into the collection from a CSV file, based on the inferred schema."""
+        self._ensure_connection()
+        df = self.csv_loader.data
+
+        for _, row in df.iterrows():
+            embedding = self.embedding_generator.generate(row['long_description'])
+            data = {'embedding': embedding}
+
+            for col in df.columns:
+                value = row[col]
+                data[col] = value
+
+            for field in self.collection.schema.fields:
+                if field.name not in data:
+                    continue
+                if field.dtype == DataType.VARCHAR:
+                    data[field.name] = str(data[field.name])
+                elif field.dtype == DataType.FLOAT:
+                    data[field.name] = float(data[field.name])
+                elif field.dtype == DataType.INT64:
+                    data[field.name] = int(data[field.name])
+            obj = {k: v for k, v in data.items()}
+            self.logger.info(f"Inserting data: {obj}")
+            self.collection.insert({k: v for k, v in data.items()})
+
+            break
+        print(self.collection)
 
 
 if __name__ == '__main__':
