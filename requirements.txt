@@ -3,3 +3,6 @@ pymilvus~=2.4.0
 langchain
 
 pandas~=2.2.1
+
+langchain-core==0.1.33
+langchain-google-vertexai==0.1.1
