@@ -4,7 +4,7 @@ from random import random
 
 from pymilvus import DataType, MilvusClient
 
-from vectorstore.csv_loader import CSVLoader
+from csv_loader import CSVLoader
 
 logging.basicConfig(level=logging.INFO)
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # milvus_store.recreate_collection(COLLECTION_NAME)
     # use otherwise
     # | for different websites it would be good idea to create a new collection for each website
-    #milvus_store.make_collection(COLLECTION_NAME)
+    milvus_store.make_collection(COLLECTION_NAME)
     # insert new data but be careful to no create too many duplicates
-    #milvus_store.insert_data_from_csv(COLLECTION_NAME)
-    milvus_store.search(COLLECTION_NAME)
+    milvus_store.insert_data_from_csv(COLLECTION_NAME)
+    # milvus_store.search(COLLECTION_NAME)
