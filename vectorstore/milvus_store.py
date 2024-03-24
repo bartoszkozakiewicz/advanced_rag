@@ -3,7 +3,7 @@ import time
 from random import random
 
 from pymilvus import DataType, MilvusClient
-
+from csv_loader import EmbeddingGenerator
 from csv_loader import CSVLoader
 
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +19,7 @@ class MilvusStoreWithClient:
     def _prepare_schema():
         schema = MilvusClient.create_schema(auto_id=True, enable_dynamic_field=True)
         schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
-        schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=128)
+        schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=1536)
         return schema
 
     @staticmethod
@@ -54,28 +54,28 @@ class MilvusStoreWithClient:
     def search(
         self,
         collection_name: str,
-        data: list = None,
+        query: list = None,
         fixed_filter: str = None,
         limit: int = 100,
         output_fields: list = None,
         search_params: dict = None,
     ):
-
-        if data is None:
-            data = [random() for _ in range(128)]
-        if fixed_filter is None:
-            # example from milvus docs: filter='claps > 30 and reading_time < 10',
-            fixed_filter = "cat_level_1 == 'Zabawki i dziecko'"
+        assert query is not None, "Query must be provided"
+        data = EmbeddingGenerator().generate(query)
+        # if fixed_filter is None:
+        #     # example from milvus docs: filter='claps > 30 and reading_time < 10',
+        #     fixed_filter = "cat_level_4 == 'Akumulatory i ładowarki'"
         if output_fields is None:
-            output_fields = ["id", "price", "cat_level_5", "url"]
+            output_fields = ["id", "price","cat_level_4", "cat_level_5", "url","specification","all_variants"]
 
+        
         return self.client.search(
             collection_name=collection_name,
-            data=data,
+            data=[data],
             filter=fixed_filter,
             limit=limit,
             output_fields=output_fields,
-            search_params=search_params,
+            # search_params=search_params,
         )
 
 
@@ -90,4 +90,5 @@ if __name__ == "__main__":
     milvus_store.make_collection(COLLECTION_NAME)
     # insert new data but be careful to no create too many duplicates
     milvus_store.insert_data_from_csv(COLLECTION_NAME)
-    # milvus_store.search(COLLECTION_NAME)
+    # searched_values = milvus_store.search(COLLECTION_NAME, query="szukam zabawek dla dziecka")
+    # print( "searched values: ", searched_values)
