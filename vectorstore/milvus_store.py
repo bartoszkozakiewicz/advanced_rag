@@ -2,7 +2,9 @@ import logging
 import time
 from random import random
 
-from pymilvus import DataType, MilvusClient
+from pymilvus import DataType, MilvusClient, Collection, AnnSearchRequest, RRFRanker, connections
+
+
 from csv_loader import EmbeddingGenerator
 from csv_loader import CSVLoader
 
@@ -21,19 +23,42 @@ class MilvusStoreWithClient:
         schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
         schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=1536)
         return schema
-
     @staticmethod
     def _prepare_index():
         index_params = MilvusClient.prepare_index_params()
         index_params.add_index(field_name="embedding", index_type="AUTOINDEX", metric_type="L2")
         return index_params
-
     def make_collection(self, collection_name: str):
         self.client.create_collection(
             collection_name=collection_name,
             schema=self._prepare_schema(),
             index_params=self._prepare_index(),
         )
+
+
+    #DO HYBRID SEARCH
+    @staticmethod
+    def _prepare_schema_kozak():
+        schema = MilvusClient.create_schema(auto_id=True, enable_dynamic_field=True)
+        schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
+        schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=1536)
+        schema.add_field(field_name="sparse_vector",  datatype=DataType.SPARSE_FLOAT_VECTOR)
+        return schema
+    @staticmethod
+    def _prepare_index_kozak():
+        index_params = MilvusClient.prepare_index_params()
+        index_params.add_index(field_name="embedding", index_type="AUTOINDEX", metric_type="L2")
+        index_params.add_index(field_name="sparse_vector",index_name="sparse_inverted_index", index_type="SPARSE_INVERTED_INDEX", metric_type="IP", params={"drop_ratio_build": 0.2}) #Inner Product
+        return index_params
+
+    def make_collection_kozak(self, collection_name: str):
+        self.client.create_collection(
+            collection_name=collection_name,
+            schema=self._prepare_schema_kozak(),
+            index_params=self._prepare_index_kozak(),
+        )
+    # ===================
+
 
     def recreate_collection(self, collection_name: str):
         if self.client.has_collection(collection_name):
@@ -62,9 +87,6 @@ class MilvusStoreWithClient:
     ):
         assert query is not None, "Query must be provided"
         data = EmbeddingGenerator().generate(query)
-        # if fixed_filter is None:
-        #     # example from milvus docs: filter='claps > 30 and reading_time < 10',
-        #     fixed_filter = "cat_level_4 == 'Akumulatory i ładowarki'"
         if output_fields is None:
             output_fields = ["id", "price","cat_level_4", "cat_level_5", "url","specification","all_variants"]
 
@@ -78,17 +100,55 @@ class MilvusStoreWithClient:
             # search_params=search_params,
         )
 
+    def hybrid_search(self,        
+        collection_name: str,
+        query: list = None,
+        fixed_filter: str = None,
+        limit: int = 10,
+        output_fields: list = None):
+
+        connections.connect(alias="default")
+        collection = Collection(name=collection_name)
+        # collection.load()
+        # print(len(EmbeddingGenerator().generate(query)))
+        res = collection.hybrid_search(
+            reqs=[
+                AnnSearchRequest(
+                    data=[EmbeddingGenerator().generate(query)], ## Dense vectors
+                    anns_field="embedding", # Field name of the vectors
+                    param={"metric_type": "L2"},
+                    limit=limit,
+                ),
+                AnnSearchRequest(
+                    data=[self.csv_loader.bm25_encode(query)], ## Sparse vector
+                    anns_field="sparse_vector", # Field name of the vectors
+                    param={"metric_type": "IP", "params": {"drop_ratio_search": 0.2,}},
+                    limit=limit,
+                )
+            ],
+            rerank=RRFRanker(),
+            limit = limit
+        )
+
+        print("Odpowiedź hybrid search: ", res)
+        return res
+
 
 if __name__ == "__main__":
     # creating collection
-    COLLECTION_NAME = "morele_pl"
+    COLLECTION_NAME = "hybrid2_morele_pl"
     milvus_store = MilvusStoreWithClient(csv_file_path="data/products.csv")
     # use only when you want to create a new collection with the same name (data clearing)
     # milvus_store.recreate_collection(COLLECTION_NAME)
     # use otherwise
     # | for different websites it would be good idea to create a new collection for each website
-    milvus_store.make_collection(COLLECTION_NAME)
+    # milvus_store.make_collection(COLLECTION_NAME)
     # insert new data but be careful to no create too many duplicates
-    milvus_store.insert_data_from_csv(COLLECTION_NAME)
+    # milvus_store.insert_data_from_csv(COLLECTION_NAME)
     # searched_values = milvus_store.search(COLLECTION_NAME, query="szukam zabawek dla dziecka")
     # print( "searched values: ", searched_values)
+
+    #HYBRYDA
+    # milvus_store.make_collection_kozak(COLLECTION_NAME)   
+    # milvus_store.insert_data_from_csv(COLLECTION_NAME)
+    milvus_store.hybrid_search(COLLECTION_NAME, query="szukam zabawek dla dziecka")

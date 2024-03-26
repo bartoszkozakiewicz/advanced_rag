@@ -1,10 +1,14 @@
 from random import random
 import pandas as pd
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from langchain_openai import OpenAIEmbeddings
 import os
 from dotenv import load_dotenv
 load_dotenv()
 from pymilvus import DataType, MilvusClient
+from pinecone_text.sparse import BM25Encoder
 
 class EmbeddingGenerator:
     """Generates embeddings for textual data."""
@@ -12,6 +16,7 @@ class EmbeddingGenerator:
     def __init__(self, dimension=1536):
         self.dimension = dimension
         self.emebeding_model = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
+    
 
     def generate(self, text):
         """Generates an embedding for the text."""
@@ -21,15 +26,20 @@ class EmbeddingGenerator:
 class CSVLoader:
     def __init__(self, file_path):
         self.file_path = file_path
-        self.data = self.load_data()
         self.client = MilvusClient(uri="http://localhost:19530")
+        self.bm25 = BM25Encoder()
+        self.data = self.load_data()
 
     def load_data(self):
         data = pd.read_csv(self.file_path)
-        data = data[data["cat_level_2"] == "Laptopy"]
+        # data = data[data["cat_level_2"] == "Laptopy"]
         print (data.shape, "shape")
-        # data = data.head(10)
+        data = data.head(3)
         self.fillna_type_compliant(data)
+
+        #FIT BM25
+        self.bm25.fit(data['long_description'].values.tolist())
+        
         return data
 
     @staticmethod
@@ -58,7 +68,12 @@ class CSVLoader:
         index_params.add_index(field_name="embedding", index_type="AUTOINDEX", metric_type="L2")
         return index_params
     #------------------
-
+    def bm25_encode(self, text):
+        list_sparse = self.bm25.encode_documents(text)
+        dict_sparse = sparse_vector = dict(zip(list_sparse['indices'], list_sparse['values']))
+        print("dict sparse: ",dict_sparse)
+        return dict_sparse
+    
     def prepare_data(
         self,
         embedding_generator: EmbeddingGenerator = EmbeddingGenerator(),
@@ -68,6 +83,7 @@ class CSVLoader:
         if exclude_fields is None:
             exclude_fields = ["id"]
 
+
         data_rows = []
         for _, row in self.data.iterrows():
             prepared_row = {}
@@ -76,12 +92,30 @@ class CSVLoader:
                 if column not in exclude_fields:
                     if column == embedding_field_name:
                         prepared_row["embedding"] = embedding_generator.generate(row[column])
+                        prepared_row["sparse_vector"] = self.bm25_encode(row[column])
                         prepared_row[column] = row[column]
                     else:
                         prepared_row[column] = row[column]
             data_rows.append(prepared_row)
+        # print("END: ",data_rows[0]["sparse_vector"])
         return data_rows
 
+
+
+    def process_row(self,row, embedding_generator, embedding_field_name, exclude_fields):
+        prepared_row = {}
+        for column in row.index:
+            if column not in exclude_fields:
+                if column == embedding_field_name:
+                    prepared_row["embedding"] = embedding_generator.generate(row[column])
+                    prepared_row[column] = row[column]
+                else:
+                    prepared_row[column] = row[column]
+        return prepared_row
+
+    def insert_data(self,client, collection_name, data,i):
+        print(f"Inserting data: ",i)
+        client.insert(collection_name=collection_name, data=data)
 
     def vector_store_creation(
         self,
@@ -89,12 +123,16 @@ class CSVLoader:
         embedding_field_name="long_description",
         exclude_fields=None,
         collection_name=None,
+        num_threads=7
     ):
         assert collection_name is not None, "Collection name must be provided"
         if exclude_fields is None:
             exclude_fields = ["id"]
         data_rows = []
 
+        def visualize_thread_operation(operation, item):
+            thread_id = threading.get_ident()  # Gets the current thread's identifier
+            print(f"{threading.current_thread().name} (ID: {thread_id}): {operation} {item}")
         # POD DODANIE 100k rekordów z zabezpieczeniem na szybko
         self.client.create_collection(
             collection_name=collection_name,
@@ -102,34 +140,36 @@ class CSVLoader:
             index_params=self._prepare_index(),
         )
         #------------------
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+            # Dispatch phase
+            result=[]
+            futures = [executor.submit(self.process_row, row, embedding_generator, embedding_field_name, exclude_fields) 
+                       for chunk in [self.data[i:i+1000] for i in range(0, len(self.data), 1000)] 
+                       for _, row in chunk.iterrows()]
+            
+            # Collection phase
+            start = time.time()
+            for i, future in enumerate(futures):
+                result.append(future.result())  
+                if i % 1000 == 0:  
+                    visualize_thread_operation("processing next chunk ", i // 1000 + 1)
+                    self.insert_data(self.client, collection_name, result, i // 1000 + 1)
+                    result=[]
+                    end = time.time()
+                    print("Czas na chunk: ", end-start)
+            if result:
+                visualize_thread_operation("processing final chunk ", "...")
+                self.insert_data(self.client, collection_name, result, "final")
 
-        for _, row in self.data.iterrows():
-            prepared_row = {}
-            for column in self.data.columns:
-                if column not in exclude_fields:
-                    if column == embedding_field_name:
-                        prepared_row["embedding"] = embedding_generator.generate(row[column])
-                        prepared_row[column] = row[column]
-                    else:
-                        prepared_row[column] = row[column]
-            data_rows.append(prepared_row)
-            if len(data_rows) == 100:
-                print("100records")
-            if len(data_rows) == 1000:
-                print("Inserting 1000 records", len(data_rows))
-                self.client.insert(collection_name="full_morele_pl", data=data_rows)
-                data_rows = []
-        if len(data_rows) > 0:
-            print("Last insert", len(data_rows))
-            self.client.insert(collection_name="full_morele_pl", data=data_rows)
-        return data_rows
+        return 1    
+
     
 
 if __name__ == "__main__":
     print("Running the CSVLoader")
     csv_loader = CSVLoader("data/products_all.csv")
-    # prepared_data = csv_loader.prepare_data()
-    csv_loader.vector_store_creation(collection_name="laptopy_morele_pl")
+    prepared_data = csv_loader.prepare_data()
+    # csv_loader.vector_store_creation(collection_name="full_morele_pl")
     # Fix the printing function to nicely format the output
     import json
     # print(json.dumps(prepared_data, indent=2))
