@@ -27,7 +27,7 @@ share/python-wheels/
 MANIFEST
 
 volumes/
-vectorstore/data/products_all.csv
+vectorstore/data
 
 
 # PyInstaller
@@ -74,6 +74,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+
+
 
 # PyBuilder
 .pybuilder/

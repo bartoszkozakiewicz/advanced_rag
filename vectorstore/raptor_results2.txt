@@ -1,0 +1,69 @@
+Level 1
+Clusters:
+                                                 text                                               embd     cluster
+0         The quick brown fox jumps over the lazy dog  [-0.0035646869494550554, 0.008303993310175504,...       [1.0]
+1                         The cats are in the kitchen  [0.008516191070158052, -0.009293783066691399, ...       [1.0]
+2                              Dogs are in the garden  [0.00255170690947971, -0.006200955093881323, -...       [1.0]
+3         The quick brown fox jumps over the lazy dog  [-0.003546100380754064, 0.008354851134499046, ...       [1.0]
+4                   The chicken is in the living room  [0.003360026279240808, -0.011988623053647084, ...       [1.0]
+5                          Lorem ipsum dolor sit amet  [-0.008974729881466283, -0.012076386972386522,...       [4.0]
+6     Sed ut perspiciatis unde omnis iste natus error  [-0.010125541148057603, -0.023903133394464985,...       [2.0]
+7   Nemo enim ipsam voluptatem quia voluptas sit a...  [-0.005216331722012878, -0.019792625909842765,...       [4.0]
+8   Neque porro quisquam est qui dolorem ipsum qui...  [-0.00595270325862493, -0.014983513976721458, ...       [4.0]
+9                         Consectetur adipiscing elit  [-0.005353488192505823, 0.006432353716501793, ...       [2.0]
+10                                     Nulla facilisi  [-0.00745284515337131, 0.0017585924403150368, ...       [3.0]
+11                                Suspendisse potenti  [-0.0172054779315693, -0.023341882035186, 0.02...       [2.0]
+12  Vestibulum ante ipsum primis in faucibus orci ...  [-0.007476781119257282, -0.014506008678511645,...       [7.0]
+13       Quisque auctor velit sit amet urna malesuada  [-0.01666025057390305, -0.015773245923280534, ...       [2.0]
+14  Cras in mauris ornare, eleifend justo ut, sagi...  [0.006018688371027964, -0.009018417349555724, ...       [0.0]
+15  Pellentesque habitant morbi tristique senectus...  [-0.0014877705014903998, -0.008055654239808762...  [2.0, 2.0]
+16       Fusce vel justo eget ligula semper consequat  [-0.016065321388718568, -0.000834719195083757,...       [5.0]
+17      Integer vitae felis sed velit rutrum suscipit  [-0.011355282725830253, -0.0026010391077666726...       [6.0]
+18  Proin scelerisque ligula non justo consequat, ...  [0.000676556613924048, -0.0066723591421576954,...       [0.0]
+19    Nam ac tortor sit amet odio consectetur rhoncus  [-0.018813979757356932, -0.013360835842978525,...       [6.0]
+20                              Aliquam erat volutpat  [-0.016013583625678812, -0.025195924216644277,...       [2.0]
+21  Etiam vel lectus vehicula, sagittis magna ut, ...  [-0.009051304243491405, -0.004248834183621349,...       [0.0]
+22        Vivamus dictum lectus eget tempor fermentum  [-0.012605701483396466, -0.010890552569775917,...       [5.0]
+23      Ut luctus purus non tellus accumsan tincidunt  [0.0027990882372931026, 0.004808606755009726, ...       [3.0]
+24            In luctus turpis vel tincidunt bibendum  [-0.005129720551945253, -0.014821331953574312,...       [3.0]
+25     Praesent nec eros ut elit vestibulum tincidunt  [0.0003308922967759152, -0.008026290505065519,...       [3.0]
+26  Curabitur eget mauris at tellus rhoncus consequat  [-0.007970069917519348, -0.008532142676044841,...       [5.0]
+27          Vestibulum euismod augue a semper laoreet  [0.003104933375879589, -0.011940596934825503, ...       [7.0]
+28  Morbi nec justo lacinia, ullamcorper ipsum ac,...  [-0.009692808042964546, -0.0009663574178313127...       [0.0]
+29        Quisque nec libero eu elit congue elementum  [-0.005051814687613429, -0.01113338337906461, ...       [5.0]
+30  Pellentesque habitant morbi tristique senectus...  [-0.0014877705014903998, -0.008055654239808762...  [2.0, 2.0]
+31   Fusce sit amet tortor id quam volutpat fringilla  [-0.023108184117481185, -0.02351604935169185, ...       [6.0]
+32    Vestibulum nec ipsum ac enim ultricies bibendum  [-0.006736443100924563, -0.028052427583333216,...       [3.0]
+33          Nam id nulla quis velit pretium venenatis  [-0.02017399689189198, -0.007290411814607976, ...       [6.0]
+34          In dictum lacus non ante volutpat posuere  [-0.010377073447794125, 0.0046343890931496035,...       [5.0]
+35          Sed id lorem vel mauris suscipit vehicula  [0.0038322861398585265, -0.004810536174944242,...       [6.0]
+36    Vivamus ultrices risus nec nisl blandit dapibus  [-0.017907757388463123, -0.019312035374782103,...       [3.0]
+37  Donec scelerisque urna eget magna bibendum ult...  [-0.017596967452833585, -0.020001279115737788,...       [0.0]
+38     Nullam nec ligula sed nulla dignissim bibendum  [-0.013279416769747011, -0.002843513456425951,...       [3.0]
+39      Vestibulum auctor odio vitae fringilla varius  [-0.006439612142719649, -0.01110768393312623, ...       [7.0]
+Summaries:
+                                           summaries  level  cluster
+0  The provided text appears to be a subset of do...      1      1.0
+1  The provided text appears to be a placeholder ...      1      4.0
+2  The provided text appears to be a placeholder ...      1      2.0
+3  The provided documentation appears to be a fra...      1      3.0
+4  The provided documentation appears to be a pla...      1      7.0
+5  The provided text appears to be a placeholder ...      1      0.0
+6  The provided documentation appears to be a sub...      1      5.0
+7  The provided text appears to be a placeholder ...      1      6.0
+
+Level 2
+Clusters:
+                                                text                                               embd cluster
+0  The provided text appears to be a subset of do...  [-0.0017935397765865655, 0.03219226243378287, ...     [0]
+1  The provided text appears to be a placeholder ...  [-0.013050300251571457, 0.017956120563128026, ...     [0]
+2  The provided text appears to be a placeholder ...  [-0.011200630558250211, 0.012183627605606108, ...     [0]
+3  The provided documentation appears to be a fra...  [-0.012688248207469442, 0.018979416375281773, ...     [0]
+4  The provided documentation appears to be a pla...  [-0.012129770028895887, 0.01155715009575993, -...     [0]
+5  The provided text appears to be a placeholder ...  [-0.01577664659916007, 0.013170434238292356, -...     [0]
+6  The provided documentation appears to be a sub...  [-0.009480615620520303, 0.026216805142260494, ...     [0]
+7  The provided text appears to be a placeholder ...  [-0.0063125739935042165, 0.010615969411799148,...     [0]
+Summaries:
+                                           summaries  level  cluster
+0  The provided text does not contain any substan...      2        0
+

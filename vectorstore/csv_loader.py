@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 from pymilvus import DataType, MilvusClient
 from pinecone_text.sparse import BM25Encoder
+from raptor import Raptor
+import statistics
 
 class EmbeddingGenerator:
     """Generates embeddings for textual data."""
@@ -26,20 +28,33 @@ class EmbeddingGenerator:
 class CSVLoader:
     def __init__(self, file_path):
         self.file_path = file_path
-        self.client = MilvusClient(uri="http://localhost:19530")
+        self.client = "" #MilvusClient(uri="http://localhost:19530")
         self.bm25 = BM25Encoder()
+        self.raptor = Raptor()
         self.data = self.load_data()
 
     def load_data(self):
         data = pd.read_csv(self.file_path)
         # data = data[data["cat_level_2"] == "Laptopy"]
         print (data.shape, "shape")
-        data = data.head(3)
+        data = data.head(40)
+        data_descriptions = data["long_description"].values.tolist()
+        data_categories = data["cat_level_2"].values.tolist()
+
+        #when there is a missing value in the description
+        filtered_descriptions = [x for x in data_descriptions if isinstance(x, str)]
         self.fillna_type_compliant(data)
 
+        #CHECK DATA LENGTH
+        docs_length = [self.raptor.num_of_tokens_for_doc(desc,"gpt-4") for desc in filtered_descriptions]
+        print("Descriptions length: ",docs_length, "\nMediana: ",statistics.median(docs_length), "\nWartość średnia: ",statistics.mean(docs_length), "\nMax: ",max(docs_length), "\nMin: ",min(docs_length))
+
+        raptor_desriptions_tree = self.raptor.recursive_embed_cluster_summarize(filtered_descriptions)
+        print("Wynik: ", raptor_desriptions_tree)
         #FIT BM25
-        self.bm25.fit(data['long_description'].values.tolist())
-        
+        # self.bm25.fit(data['long_description'].values.tolist())
+        return 
+        #GENERATE RAPTOR ARCHITECTURE
         return data
 
     @staticmethod
@@ -168,7 +183,8 @@ class CSVLoader:
 if __name__ == "__main__":
     print("Running the CSVLoader")
     csv_loader = CSVLoader("data/products_all.csv")
-    prepared_data = csv_loader.prepare_data()
+    # prepared_data = csv_loader.prepare_data()
+    csv_loader.load_data()
     # csv_loader.vector_store_creation(collection_name="full_morele_pl")
     # Fix the printing function to nicely format the output
     import json

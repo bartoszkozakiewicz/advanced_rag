@@ -55,20 +55,20 @@ async def getMessage(message:ChatMessage):
     print("Otrzymałem wiadomość ", message.message)
     assert message.message is not None, "Message must be provided"
 
+
+    #CATEGORIES EXTRACTION - OPENAI CHAT
+    filters = EcommerceAssistant.ask_chat_categories(message=message.message)
+
     # VECTORSTORE
     searched_data = storeClient.search(
             collection_name = COLLECTION_NAME, 
             query= message.message,
-            fixed_filter = None,
+            fixed_filter = filters,
             limit = 3,
             output_fields = [ "price","cat_level_4", "cat_level_5","specification","all_variants","long_description","url"],# "url"
             search_params = None
         )
-    out_data = [data["entity"] for  data in searched_data[0]]
-    for data in out_data:
-        print("Otrzymałem wiadomość ", data,"\n", "-------------------","\n")
-
+    
     #OPENAI CHAT
-    # answear = EcommerceAssistant.ask_chat(message=message.message, searched_data=searched_data)
     answear = EcommerceAssistant.conversation(message=message.message, searched_data=searched_data)
     return {"message": answear}

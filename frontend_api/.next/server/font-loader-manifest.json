@@ -1,0 +1,9 @@
+{
+  "pages": {},
+  "app": {
+    "/Users/bartek/Documents/ai_persp/advanced_rag/frontend_api/node_modules/@next/font/google/target.css?{\"path\":\"app/page.tsx\",\"import\":\"Roboto\",\"arguments\":[{\"subsets\":[\"latin\"],\"weight\":[\"400\",\"700\"],\"variable\":\"--font-roboto\"}],\"variableName\":\"roboto\"}": [
+      "static/media/934c4b7cb736f2a3.p.woff2",
+      "static/media/0e4fe491bf84089c.p.woff2"
+    ]
+  }
+}

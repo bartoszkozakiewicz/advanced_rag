@@ -1,2 +1,5 @@
 fastapi
 uvicorn
+umap-learn
+pinecone-text
+#milvus-model --upgrade
