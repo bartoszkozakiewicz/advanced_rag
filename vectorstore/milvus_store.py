@@ -51,12 +51,16 @@ class MilvusStoreWithClient:
         index_params.add_index(field_name="sparse_vector",index_name="sparse_inverted_index", index_type="SPARSE_INVERTED_INDEX", metric_type="IP", params={"drop_ratio_build": 0.2}) #Inner Product
         return index_params
 
+    def describe_collection(self, collection_name: str):
+        return (self.client.describe_collection(collection_name),self.client.list_collections())
+    
     def make_collection_kozak(self, collection_name: str):
         self.client.create_collection(
             collection_name=collection_name,
             schema=self._prepare_schema_kozak(),
             index_params=self._prepare_index_kozak(),
         )
+        return
     # ===================
 
 
@@ -70,11 +74,12 @@ class MilvusStoreWithClient:
         logging.info(f"Creating collection: {collection_name}")
         self.make_collection(collection_name)
 
-    def insert_data_from_csv(self, collection_name: str):
-        prepared_data = self.csv_loader.prepare_data()
+    def insert_data_from_csv(self, collection_name: str, hybrid:bool = False):
+        prepared_data = self.csv_loader.prepare_data(hybrid=hybrid)
         self.logger.info(f"Inserting {len(prepared_data)} records into collection")
         self.client.insert(collection_name=collection_name, data=prepared_data)
         time.sleep(5000)
+        return 
 
     def search(
         self,
@@ -104,7 +109,7 @@ class MilvusStoreWithClient:
         collection_name: str,
         query: list = None,
         fixed_filter: str = None,
-        limit: int = 10,
+        limit: int = 2,
         output_fields: list = None):
 
         connections.connect(alias="default")
@@ -112,6 +117,7 @@ class MilvusStoreWithClient:
         # collection.load()
         # print(len(EmbeddingGenerator().generate(query)))
         res = collection.hybrid_search(
+            output_fields=["id", "price","cat_level_4", "cat_level_5", "url","specification","all_variants"],
             reqs=[
                 AnnSearchRequest(
                     data=[EmbeddingGenerator().generate(query)], ## Dense vectors
@@ -136,7 +142,8 @@ class MilvusStoreWithClient:
 
 if __name__ == "__main__":
     # creating collection
-    COLLECTION_NAME = "hybrid2_morele_pl"
+    COLLECTION_NAME_HYBRID = "hybrid40_morele_pl"
+    COLLECTION_NAME = "new_morele_pl"
     milvus_store = MilvusStoreWithClient(csv_file_path="data/products.csv")
     # use only when you want to create a new collection with the same name (data clearing)
     # milvus_store.recreate_collection(COLLECTION_NAME)
@@ -145,10 +152,18 @@ if __name__ == "__main__":
     # milvus_store.make_collection(COLLECTION_NAME)
     # insert new data but be careful to no create too many duplicates
     # milvus_store.insert_data_from_csv(COLLECTION_NAME)
+
+
+    #KLASYCZNA
+    # milvus_store.make_collection(COLLECTION_NAME)
+    # milvus_store.insert_data_from_csv(COLLECTION_NAME, hybrid=False)
     # searched_values = milvus_store.search(COLLECTION_NAME, query="szukam zabawek dla dziecka")
     # print( "searched values: ", searched_values)
 
     #HYBRYDA
-    # milvus_store.make_collection_kozak(COLLECTION_NAME)   
-    # milvus_store.insert_data_from_csv(COLLECTION_NAME)
-    milvus_store.hybrid_search(COLLECTION_NAME, query="szukam zabawek dla dziecka")
+    # milvus_store.make_collection_kozak(COLLECTION_NAME_HYBRID)   
+    # milvus_store.insert_data_from_csv(COLLECTION_NAME_HYBRID, hybrid=True)
+    searched_values = milvus_store.hybrid_search(COLLECTION_NAME_HYBRID, query="szukam zabawek dla dziecka")
+    print( "searched values: ", searched_values)
+
+    # print(milvus_store.describe_collection(COLLECTION_NAME_HYBRID))

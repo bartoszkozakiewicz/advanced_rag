@@ -37,24 +37,25 @@ class CSVLoader:
         data = pd.read_csv(self.file_path)
         # data = data[data["cat_level_2"] == "Laptopy"]
         print (data.shape, "shape")
-        data = data.head(40)
+        data = data.head(20)
         data_descriptions = data["long_description"].values.tolist()
-        data_categories = data["cat_level_2"].values.tolist()
+        # data_categories = data["cat_level_2"].values.tolist()
 
         #when there is a missing value in the description
-        filtered_descriptions = [x for x in data_descriptions if isinstance(x, str)]
         self.fillna_type_compliant(data)
 
         #CHECK DATA LENGTH
-        docs_length = [self.raptor.num_of_tokens_for_doc(desc,"gpt-4") for desc in filtered_descriptions]
-        print("Descriptions length: ",docs_length, "\nMediana: ",statistics.median(docs_length), "\nWartość średnia: ",statistics.mean(docs_length), "\nMax: ",max(docs_length), "\nMin: ",min(docs_length))
+        filtered_descriptions = [x for x in data_descriptions if isinstance(x, str)]
 
-        raptor_desriptions_tree = self.raptor.recursive_embed_cluster_summarize(filtered_descriptions)
-        print("Wynik: ", raptor_desriptions_tree)
+        #RAPTOR THINGS
+        # docs_length = [self.raptor.num_of_tokens_for_doc(desc,"gpt-4") for desc in filtered_descriptions]
+        # print("Descriptions length: ",docs_length, "\nMediana: ",statistics.median(docs_length), "\nWartość średnia: ",statistics.mean(docs_length), "\nMax: ",max(docs_length), "\nMin: ",min(docs_length))
+        # raptor_desriptions_tree = self.raptor.recursive_embed_cluster_summarize(filtered_descriptions)
+        # print("Wynik: ", raptor_desriptions_tree)
+
         #FIT BM25
-        # self.bm25.fit(data['long_description'].values.tolist())
-        return 
-        #GENERATE RAPTOR ARCHITECTURE
+        self.bm25.fit(data['long_description'].values.tolist())
+
         return data
 
     @staticmethod
@@ -85,8 +86,8 @@ class CSVLoader:
     #------------------
     def bm25_encode(self, text):
         list_sparse = self.bm25.encode_documents(text)
-        dict_sparse = sparse_vector = dict(zip(list_sparse['indices'], list_sparse['values']))
-        print("dict sparse: ",dict_sparse)
+        dict_sparse = dict(zip(list_sparse['indices'], list_sparse['values']))
+        # print("dict sparse: ",dict_sparse)
         return dict_sparse
     
     def prepare_data(
@@ -94,10 +95,12 @@ class CSVLoader:
         embedding_generator: EmbeddingGenerator = EmbeddingGenerator(),
         embedding_field_name="long_description",
         exclude_fields=None,
+        hybrid  = False
     ):
         if exclude_fields is None:
             exclude_fields = ["id"]
 
+        print ("data in prepare ds: ", self.data.keys())
 
         data_rows = []
         for _, row in self.data.iterrows():
@@ -107,11 +110,12 @@ class CSVLoader:
                 if column not in exclude_fields:
                     if column == embedding_field_name:
                         prepared_row["embedding"] = embedding_generator.generate(row[column])
-                        prepared_row["sparse_vector"] = self.bm25_encode(row[column])
-                        prepared_row[column] = row[column]
+                        if(hybrid): prepared_row["sparse_vector"] = self.bm25_encode(row[column])
                     else:
                         prepared_row[column] = row[column]
             data_rows.append(prepared_row)
+
+        # print("START: ",data_rows[:3])
         # print("END: ",data_rows[0]["sparse_vector"])
         return data_rows
 
@@ -183,8 +187,8 @@ class CSVLoader:
 if __name__ == "__main__":
     print("Running the CSVLoader")
     csv_loader = CSVLoader("data/products_all.csv")
-    # prepared_data = csv_loader.prepare_data()
-    csv_loader.load_data()
+    prepared_data = csv_loader.prepare_data()
+    # csv_loader.load_data()
     # csv_loader.vector_store_creation(collection_name="full_morele_pl")
     # Fix the printing function to nicely format the output
     import json
